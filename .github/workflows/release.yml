@@ -101,7 +101,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release-artifacts/*.tar.gz
-            release-artifacts/*.deb
-            release-artifacts/*.pkg.tar.zst
-            release-artifacts/PKGBUILD
+            release-artifacts/**/*.tar.gz
+            release-artifacts/**/*.deb
+            release-artifacts/**/*.pkg.tar.zst
+            release-artifacts/**/PKGBUILD
