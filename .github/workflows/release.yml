@@ -46,7 +46,7 @@ jobs:
           Maintainer: kebabify maintainers
           Description: CLI to rename files to kebab-case or snake_case
           CONTROL
-          dpkg-deb --build pkg-deb kebabify_${VERSION}_amd64.deb
+          dpkg-deb --build pkg-deb kebabify_${GITHUB_REF_NAME}_amd64.deb
 
       - name: Build Arch package source bundle
         run: |
@@ -63,6 +63,7 @@ jobs:
             kebabify-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
             kebabify_${{ github.ref_name }}_amd64.deb
             kebabify-*-archlinux.tar.gz
+          if-no-files-found: error
 
   publish:
     runs-on: ubuntu-latest
@@ -72,10 +73,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: release-artifacts
+          path: release-artifacts
 
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            *.tar.gz
-            *.deb
+            release-artifacts/*.tar.gz
+            release-artifacts/*.deb
