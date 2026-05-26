@@ -48,12 +48,33 @@ jobs:
           CONTROL
           dpkg-deb --build pkg-deb kebabify_${GITHUB_REF_NAME}_amd64.deb
 
-      - name: Build Arch package source bundle
+      - name: Build Arch package (.pkg.tar.zst)
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          mkdir -p arch
-          sed "s/^pkgver=.*/pkgver=${VERSION}/" PKGBUILD > arch/PKGBUILD
-          tar -C arch -czf kebabify-${VERSION}-archlinux.tar.gz PKGBUILD
+          mkdir -p archpkg
+          cp target/${{ matrix.target }}/release/kebabify archpkg/kebabify
+          cat > archpkg/PKGBUILD <<'PKG'
+          pkgname=kebabify
+          pkgver=__VERSION__
+          pkgrel=1
+          pkgdesc='CLI to rename files to kebab-case or snake_case'
+          arch=('x86_64')
+          license=('MIT')
+          source=('kebabify')
+          sha256sums=('SKIP')
+
+          package() {
+            install -Dm755 kebabify "$pkgdir/usr/bin/kebabify"
+          }
+          PKG
+          sed -i "s/__VERSION__/${VERSION}/" archpkg/PKGBUILD
+
+          docker run --rm -v "$PWD/archpkg:/work" -w /work archlinux:latest bash -lc '
+            pacman -Syu --noconfirm --needed base-devel
+            useradd -m builder
+            chown -R builder:builder /work
+            su builder -c "cd /work && makepkg -f --noconfirm"
+          '
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -62,7 +83,8 @@ jobs:
           path: |
             kebabify-${{ github.ref_name }}-${{ matrix.target }}.tar.gz
             kebabify_${{ github.ref_name }}_amd64.deb
-            kebabify-*-archlinux.tar.gz
+            archpkg/*.pkg.tar.zst
+            archpkg/PKGBUILD
           if-no-files-found: error
 
   publish:
@@ -81,3 +103,5 @@ jobs:
           files: |
             release-artifacts/*.tar.gz
             release-artifacts/*.deb
+            release-artifacts/*.pkg.tar.zst
+            release-artifacts/PKGBUILD
